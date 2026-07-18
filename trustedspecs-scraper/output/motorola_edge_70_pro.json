@@ -1,0 +1,223 @@
+{
+  "source_url": "https://www.gsmarena.com/motorola_edge_70_pro_5g-14620.php",
+  "specs": {
+    "Network": [
+      {
+        "key": "Technology",
+        "val": "GSM / HSPA / LTE / 5G"
+      },
+      {
+        "key": "2G bands",
+        "val": "GSM 850 / 900 / 1800 / 1900"
+      },
+      {
+        "key": "3G bands",
+        "val": "HSDPA 850 / 900 / 1700(AWS) / 1900 / 2100"
+      },
+      {
+        "key": "4G bands",
+        "val": "1, 2, 3, 4, 5, 7, 8, 12, 13, 17, 18, 19, 20, 25, 26, 28, 32, 38, 39, 40, 41, 42, 43, 66, 71 - Europe"
+      },
+      {
+        "key": "5G bands",
+        "val": "1, 2, 3, 5, 7, 8, 20, 26, 28, 38, 40, 41, 66, 71, 75, 77, 78 SA/NSA/Sub6 - Europe"
+      },
+      {
+        "key": "Speed",
+        "val": "HSPA, LTE, 5G"
+      }
+    ],
+    "Launch": [
+      {
+        "key": "Announced",
+        "val": "2026, April 22"
+      },
+      {
+        "key": "Status",
+        "val": "Available. Released 2026, April 29"
+      }
+    ],
+    "Body": [
+      {
+        "key": "Dimensions",
+        "val": "162.7 x 75.6 x 7.2 mm (6.41 x 2.98 x 0.28 in)"
+      },
+      {
+        "key": "Weight",
+        "val": "183 g or 190 g (6.46 oz)"
+      },
+      {
+        "key": "Build",
+        "val": "Glass front (Gorilla Glass 7i), plastic frame, silicone polymer (eco leather) back"
+      },
+      {
+        "key": "SIM",
+        "val": "· Nano-SIM + eSIM, · Nano-SIM + Nano-SIM"
+      }
+    ],
+    "Display": [
+      {
+        "key": "Type",
+        "val": "AMOLED, 1B colors, 144Hz, PWM, HDR, 1800 (HBM), 5200 nits (peak)"
+      },
+      {
+        "key": "Size",
+        "val": "6.78 inches, 112.4 cm2 (~91.4% screen-to-body ratio)"
+      },
+      {
+        "key": "Resolution",
+        "val": "1272 x 2772 pixels, 19.5:9 ratio (~450 ppi density)"
+      },
+      {
+        "key": "Protection",
+        "val": "Corning Gorilla Glass 7i, Mohs level 4"
+      }
+    ],
+    "Platform": [
+      {
+        "key": "OS",
+        "val": "Android 16, up to 3 major Android upgrades"
+      },
+      {
+        "key": "Chipset",
+        "val": "Mediatek Dimensity 8500 Extreme (4 nm)"
+      },
+      {
+        "key": "CPU",
+        "val": "Octa-core (1x3.4 GHz Cortex-A725 & 3x3.2 GHz Cortex-A725 & 4x2.2 GHz Cortex-A725)"
+      },
+      {
+        "key": "GPU",
+        "val": "Mali-G720 MC8"
+      }
+    ],
+    "Memory": [
+      {
+        "key": "Card slot",
+        "val": "No"
+      },
+      {
+        "key": "Internal",
+        "val": "256GB 8GB RAM, 256GB 12GB RAM, 512GB 12GB RAM"
+      }
+    ],
+    "Main Camera": [
+      {
+        "key": "Triple",
+        "val": "50 MP, f/1.8, 24mm (wide), 1/1.56\", 1.0µm, multi-directional PDAF, OIS, 50 MP, f/2.5, 81mm (periscope telephoto), 1/2.76\", 0.64µm, PDAF, OIS, 3.5x optical zoom*, 50 MP, f/2.0, 12mm, 122˚ (ultrawide), 1/2.76\", 0.64µm, PDAF, *the availability of periscope telephoto is market/region dependent"
+      },
+      {
+        "key": "Features",
+        "val": "LED flash, HDR, panorama, Pantone Validated Colour and Skin Tones"
+      },
+      {
+        "key": "Video",
+        "val": "4K@30/60/120fps, 1080p@30/60/120/240fps, gyro-EIS, HDR10+"
+      }
+    ],
+    "Selfie camera": [
+      {
+        "key": "Single",
+        "val": "50 MP, f/1.9, (wide), 1/2.76\", 0.64µm, AF"
+      },
+      {
+        "key": "Features",
+        "val": "HDR"
+      },
+      {
+        "key": "Video",
+        "val": "4K@30fps, 1080p@30/120fps"
+      }
+    ],
+    "Sound": [
+      {
+        "key": "Loudspeaker",
+        "val": "Yes, with stereo speakers (with Dolby Atmos)"
+      },
+      {
+        "key": "3.5mm jack",
+        "val": "No"
+      }
+    ],
+    "Comms": [
+      {
+        "key": "WLAN",
+        "val": "Wi-Fi 802.11 a/b/g/n/ac/6e/7, dual-band or tri-band, Wi-Fi Direct"
+      },
+      {
+        "key": "Bluetooth",
+        "val": "5.4, A2DP, LE"
+      },
+      {
+        "key": "Positioning",
+        "val": "GPS, GLONASS, GALILEO, BDS, NavIC"
+      },
+      {
+        "key": "NFC",
+        "val": "Yes"
+      },
+      {
+        "key": "Radio",
+        "val": "No"
+      },
+      {
+        "key": "USB",
+        "val": "USB Type-C 2.0, OTG"
+      }
+    ],
+    "Features": [
+      {
+        "key": "Sensors",
+        "val": "Fingerprint (under display, optical), accelerometer, gyro, proximity, compass"
+      }
+    ],
+    "Battery": [
+      {
+        "key": "Type",
+        "val": "Si/C Li-Ion 6500 mAh"
+      },
+      {
+        "key": "Charging",
+        "val": "90W wired, PD3.0, 15W wireless (region dependent), 10W reverse wireless (region dependent), 5W reverse wired"
+      }
+    ],
+    "Misc": [
+      {
+        "key": "Colors",
+        "val": "Pantone: Lily White, Titan, Tea, Zinfandel, Chicory Coffee"
+      },
+      {
+        "key": "Price",
+        "val": "&#8377;&thinsp;37,649 / &#163;&thinsp;545.00"
+      }
+    ],
+    "Our Tests": [
+      {
+        "key": "Loudspeaker",
+        "val": "-23.2 LUFS (Very good)"
+      }
+    ],
+    "EU LABEL": [
+      {
+        "key": "Energy",
+        "val": "Class A"
+      },
+      {
+        "key": "Battery",
+        "val": "67:53h endurance, 1200 cycles"
+      },
+      {
+        "key": "Free fall",
+        "val": "Class A (270 falls)"
+      },
+      {
+        "key": "Repairability",
+        "val": "Class B"
+      }
+    ]
+  },
+  "name": "Motorola Edge 70 Pro",
+  "brand": "Motorola",
+  "image": "",
+  "announced": "2026, April 22"
+}

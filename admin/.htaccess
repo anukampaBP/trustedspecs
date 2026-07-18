@@ -1,0 +1,17 @@
+Options -Indexes
+DirectoryIndex index.php
+
+# Block direct access to includes
+<FilesMatch "^(cron|includes)/">
+    Require all denied
+</FilesMatch>
+
+# No access to cron folder
+<Directory "cron">
+    Require all denied
+</Directory>
+
+# PHP version (cPanel specific)
+<FilesMatch "\.php$">
+    AddHandler application/x-httpd-ea-php84 .php
+</FilesMatch>
