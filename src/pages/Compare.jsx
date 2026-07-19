@@ -18,32 +18,32 @@ const QUALITY_DIMS = [
 
 const SPEC_SECTIONS = ['Display', 'Back-Camera', 'Battery', 'Performance', 'Storage', 'Connectivity', 'Build'];
 
-const STORE_COLORS = {
-  Amazon: '#FF9900', Flipkart: '#2874f0', Croma: '#9f1d35',
-};
-
 function scoreColor(s) {
-  if (s >= 8) return '#16a34a';
-  if (s >= 6.5) return '#65a30d';
-  if (s >= 5)  return '#d97706';
+  if (s >= 8.5) return '#15803d';
+  if (s >= 7)   return '#65a30d';
+  if (s >= 5.5) return '#b45309';
   return '#dc2626';
 }
 
-export default function Compare({ compareList, onRemoveCompare, onAddCompare }) {
-  const [phones,   setPhones]   = useState([]);
-  const [search,   setSearch]   = useState(['', '', '']);
-  const [results,  setResults]  = useState([[], [], []]);
-  const [loading,  setLoading]  = useState(false);
+function isWinner(vals, idx) {
+  const nums = vals.map(v => parseFloat(String(v).replace(/[^\d.]/g, '')) || 0);
+  const max  = Math.max(...nums);
+  return max > 0 && nums[idx] === max;
+}
+
+export default function Compare({ compareList, onAddCompare, onRemove }) {
+  const [phones,   setPhones]   = useState(compareList.slice(0, 3));
   const [data,     setData]     = useState(null);
-  const [activeSpec, setActiveSpec] = useState(SPEC_SECTIONS[0]);
+  const [loading,  setLoading]  = useState(false);
+  const [searches, setSearches] = useState(['', '', '']);
+  const [results,  setResults]  = useState([[], [], []]);
+  const [specSec,  setSpecSec]  = useState(SPEC_SECTIONS[0]);
   const navigate = useNavigate();
 
-  // Sync from global compare list
-  useEffect(() => {
-    setPhones(compareList.slice(0, 3));
-  }, [compareList]);
+  // Sync from compare list
+  useEffect(() => { setPhones(compareList.slice(0, 3)); }, [compareList]);
 
-  // Load compare data when phones change
+  // Fetch compare data
   useEffect(() => {
     const slugs = phones.map(p => p.slug).filter(Boolean);
     if (slugs.length < 2) { setData(null); return; }
@@ -54,11 +54,9 @@ export default function Compare({ compareList, onRemoveCompare, onAddCompare }) 
   }, [phones]);
 
   async function handleSearch(idx, q) {
-    const updated = [...search]; updated[idx] = q;
-    setSearch(updated);
+    const upd = [...searches]; upd[idx] = q; setSearches(upd);
     if (q.trim().length < 2) {
-      const r = [...results]; r[idx] = []; setResults(r);
-      return;
+      const r = [...results]; r[idx] = []; setResults(r); return;
     }
     try {
       const res = await api.search(q);
@@ -69,137 +67,92 @@ export default function Compare({ compareList, onRemoveCompare, onAddCompare }) 
   }
 
   function selectPhone(idx, phone) {
-    const updated = [...phones];
-    updated[idx] = phone;
-    setPhones(updated.filter(Boolean));
     onAddCompare?.(phone);
-    const s = [...search]; s[idx] = '';
-    setSearch(s);
-    const r = [...results]; r[idx] = [];
-    setResults(r);
+    const s = [...searches]; s[idx] = ''; setSearches(s);
+    const r = [...results];  r[idx] = []; setResults(r);
   }
 
-  function removePhone(idx) {
+  function removeSlot(idx) {
     const p = phones[idx];
-    if (p) onRemoveCompare?.(p);
-    const updated = [...phones];
-    updated.splice(idx, 1);
-    setPhones(updated);
+    if (p) onRemove?.(p);
   }
 
-  // Find winner for a numeric value (higher is better)
-  function isWinner(vals, idx) {
-    const nums = vals.map(v => parseFloat(String(v).replace(/[^\d.]/g, '')) || 0);
-    const max  = Math.max(...nums);
-    return max > 0 && nums[idx] === max;
-  }
-
-  const slots = [0, 1, 2];
+  const colCount = Math.max(phones.length, 1);
 
   return (
-    <div style={{ minHeight: '100vh' }}>
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--cream-border)', padding: '2rem 0 1.5rem' }}>
-        <div className="container">
-          <div className="section-eyebrow">Side-by-side</div>
-          <h1 className="section-title">Compare Phones</h1>
-          <p className="section-sub">Pick up to 3 phones to compare specs, quality scores and prices.</p>
+    <div>
+      {/* ── Slot header ─────────────────────────────────────────────── */}
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--cream3)', padding: '18px var(--pad)' }}>
+        <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto' }}>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, marginBottom: 3 }}>
+              Compare Phones
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
+              Add up to 3 phones to compare specs, scores, and prices side by side.
+            </div>
+          </div>
 
-          {/* Phone selector slots */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '1rem',
-          }}>
-            {slots.map(idx => {
+          <div className="compare-slot-grid">
+            {[0, 1, 2].map(idx => {
               const phone = phones[idx];
-              return (
-                <div key={idx}>
-                  {phone ? (
-                    /* Filled slot */
-                    <div className="card" style={{ padding: '1.25rem', textAlign: 'center', position: 'relative' }}>
-                      <button
-                        onClick={() => removePhone(idx)}
-                        style={{
-                          position: 'absolute', top: '.65rem', right: '.65rem',
-                          background: 'var(--cream)', border: 'none', borderRadius: '50%',
-                          width: 24, height: 24, cursor: 'pointer',
-                          fontSize: '.75rem', color: 'var(--ink-mid)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >✕</button>
-                      {phone.primary_image_url && (
-                        <img
-                          src={phone.primary_image_url}
-                          alt={phone.name}
-                          style={{ height: 80, objectFit: 'contain', margin: '0 auto .75rem' }}
-                        />
-                      )}
-                      <div style={{ fontWeight: 700, fontSize: '.9rem' }}>{phone.name}</div>
-                      <div style={{ fontSize: '.75rem', color: 'var(--ink-light)' }}>{phone.brand}</div>
-                      {phone.overall_score > 0 && (
-                        <div style={{ marginTop: '.75rem', display: 'flex', justifyContent: 'center' }}>
-                          <ScoreRing score={parseFloat(phone.overall_score)} size={52} strokeWidth={5} animated={false} />
-                        </div>
-                      )}
+              return phone ? (
+                <div key={idx} className="compare-slot-filled">
+                  <button className="compare-remove" onClick={() => removeSlot(idx)}>✕</button>
+                  {(phone.primary_image_url || phone.primary_image) && (
+                    <img
+                      src={phone.primary_image_url || phone.primary_image}
+                      alt={phone.name}
+                      style={{ height: 70, objectFit: 'contain', margin: '0 auto 8px' }}
+                    />
+                  )}
+                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{phone.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>{phone.brand}</div>
+                  {phone.overall_score > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <ScoreRing score={parseFloat(phone.overall_score)} size="md" animated={false} />
                     </div>
-                  ) : (
-                    /* Empty slot */
-                    <div style={{ position: 'relative' }}>
-                      <div className="card" style={{
-                        padding: '1.5rem',
-                        border: '2px dashed var(--cream-border)',
-                        background: 'var(--cream)',
-                        textAlign: 'center',
-                        minHeight: 180,
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center', gap: '.75rem',
-                      }}>
-                        <div style={{ fontSize: '1.5rem' }}>📱</div>
-                        <input
-                          type="text"
-                          placeholder={`Phone ${idx + 1} — search by name`}
-                          value={search[idx]}
-                          onChange={e => handleSearch(idx, e.target.value)}
+                  )}
+                </div>
+              ) : (
+                <div key={idx} className="compare-slot-empty" style={{ position: 'relative' }}>
+                  <div style={{ fontSize: 28, color: 'var(--cream3)' }}>📱</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Phone {idx + 1}</div>
+                  <input
+                    type="text"
+                    placeholder="Search to add…"
+                    value={searches[idx]}
+                    onChange={e => handleSearch(idx, e.target.value)}
+                  />
+                  {results[idx].length > 0 && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0,
+                      background: 'var(--white)', border: '1px solid var(--cream3)',
+                      borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)',
+                      zIndex: 50, maxHeight: 260, overflowY: 'auto',
+                    }}>
+                      {results[idx].map(p => (
+                        <div
+                          key={p.id}
+                          onClick={() => selectPhone(idx, p)}
                           style={{
-                            width: '100%', padding: '.5rem .85rem',
-                            borderRadius: 'var(--r-full)',
-                            border: '1.5px solid var(--cream-border)',
-                            background: 'var(--white)',
-                            fontSize: '.85rem',
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '8px 12px', cursor: 'pointer',
+                            borderBottom: '1px solid var(--cream3)',
                           }}
-                        />
-                      </div>
-                      {results[idx].length > 0 && (
-                        <div style={{
-                          position: 'absolute', top: '100%', left: 0, right: 0,
-                          background: 'var(--white)',
-                          border: '1px solid var(--cream-border)',
-                          borderRadius: 'var(--r-lg)',
-                          boxShadow: 'var(--shadow-lg)',
-                          zIndex: 50, maxHeight: 280, overflowY: 'auto',
-                        }}>
-                          {results[idx].map(p => (
-                            <div
-                              key={p.id}
-                              onClick={() => selectPhone(idx, p)}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: '.75rem',
-                                padding: '.65rem 1rem', cursor: 'pointer',
-                                borderBottom: '1px solid var(--cream-border)',
-                                transition: 'background .1s',
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--purple-pale)'}
-                              onMouseLeave={e => e.currentTarget.style.background = ''}
-                            >
-                              {p.image && <img src={p.image} alt={p.name} style={{ width: 36, height: 36, objectFit: 'contain' }} />}
-                              <div>
-                                <div style={{ fontWeight: 600, fontSize: '.875rem' }}>{p.name}</div>
-                                <div style={{ fontSize: '.72rem', color: 'var(--ink-light)' }}>{p.brand}</div>
-                              </div>
-                            </div>
-                          ))}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--purple-pale)'}
+                          onMouseLeave={e => e.currentTarget.style.background = ''}
+                        >
+                          {(p.primary_image_url || p.image) && (
+                            <img src={p.primary_image_url || p.image} alt={p.name}
+                              style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                          )}
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
+                            <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{p.brand}</div>
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>
@@ -209,82 +162,68 @@ export default function Compare({ compareList, onRemoveCompare, onAddCompare }) 
         </div>
       </div>
 
+      {/* Empty state */}
       {phones.length < 2 && (
-        <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--ink-light)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚡</div>
-          <div style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '.5rem' }}>
+        <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--ink3)' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>⚡</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
             Add at least 2 phones to start comparing
           </div>
-          <div style={{ fontSize: '.875rem', marginBottom: '1.5rem' }}>
-            Search for phones above or browse from the home page
+          <div style={{ fontSize: 13, marginBottom: 18 }}>
+            Search in the boxes above, or browse phones from the home page
           </div>
           <Link to="/" className="btn btn-primary">Browse phones →</Link>
         </div>
       )}
 
+      {/* Comparison tables */}
       {phones.length >= 2 && (
-        <div className="container" style={{ padding: '2rem 1.25rem' }}>
+        <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto', padding: '20px var(--pad) 40px' }}>
 
           {loading && (
-            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--ink-light)' }}>
-              Loading comparison…
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--ink3)' }}>
+              Loading comparison data…
             </div>
           )}
 
           {!loading && data && (
             <>
-              {/* ── Quality Scores comparison ─────────────────────────────── */}
-              <div className="card" style={{ marginBottom: '1.5rem', overflow: 'hidden' }}>
-                <div style={{
-                  background: 'var(--purple)', color: '#fff',
-                  padding: '.65rem 1.25rem',
-                  fontSize: '.78rem', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '.08em',
-                }}>
-                  🎯 Quality Scores
-                </div>
+              {/* Quality scores */}
+              <div className="card" style={{ marginBottom: 16, overflow: 'hidden' }}>
+                <div className="compare-section-header">🎯 Quality Scores</div>
 
-                {/* Header row with phone names */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: `200px repeat(${phones.length}, 1fr)`,
-                  borderBottom: '1px solid var(--cream-border)',
-                }}>
-                  <div style={{ padding: '.75rem 1rem', background: 'var(--cream)' }} />
+                {/* Header */}
+                <div style={{ display: 'grid', gridTemplateColumns: `160px repeat(${colCount}, 1fr)`, borderBottom: '1px solid var(--cream3)' }}>
+                  <div className="compare-label-cell" style={{ borderBottom: 'none' }} />
                   {phones.map((p, i) => (
                     <div key={i} style={{
-                      padding: '.75rem 1rem',
-                      fontWeight: 700, fontSize: '.875rem',
-                      borderLeft: '1px solid var(--cream-border)',
-                      textAlign: 'center',
+                      padding: '10px 13px', fontWeight: 700, fontSize: 13,
+                      borderLeft: '1px solid var(--cream3)', textAlign: 'center',
                     }}>
                       {p.name}
                     </div>
                   ))}
                 </div>
 
-                {/* Overall row */}
+                {/* Overall */}
                 <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: `200px repeat(${phones.length}, 1fr)`,
-                  borderBottom: '2px solid var(--purple)',
-                  background: 'var(--purple-pale)',
+                  display: 'grid', gridTemplateColumns: `160px repeat(${colCount}, 1fr)`,
+                  background: 'var(--purple-pale)', borderBottom: '2px solid var(--purple-border)',
                 }}>
-                  <div style={{ padding: '1rem', fontWeight: 700, fontSize: '.875rem' }}>
-                    ⭐ Overall Score
+                  <div className="compare-label-cell" style={{ borderBottom: 'none', display: 'flex', alignItems: 'center' }}>
+                    ⭐ Overall
                   </div>
                   {phones.map((p, i) => {
-                    const score = parseFloat(p.overall_score) || 0;
+                    const s = parseFloat(p.overall_score) || 0;
                     const win = isWinner(phones.map(ph => ph.overall_score || 0), i);
                     return (
                       <div key={i} style={{
-                        padding: '1rem',
-                        textAlign: 'center',
-                        borderLeft: '1px solid var(--cream-border)',
-                        background: win ? 'var(--purple-dim)' : '',
+                        padding: '10px', textAlign: 'center',
+                        borderLeft: '1px solid var(--cream3)',
+                        background: win ? 'rgba(109,40,217,.06)' : '',
                       }}>
-                        <ScoreRing score={score} size={52} strokeWidth={5} animated={false} />
-                        {win && <div style={{ fontSize: '.65rem', color: 'var(--purple)', fontWeight: 700, marginTop: '.25rem' }}>WINNER</div>}
+                        <ScoreRing score={s} size="md" animated={false} />
+                        {win && <div style={{ fontSize: 9, color: 'var(--purple)', fontWeight: 700, marginTop: 3 }}>WINNER</div>}
                       </div>
                     );
                   })}
@@ -293,35 +232,19 @@ export default function Compare({ compareList, onRemoveCompare, onAddCompare }) 
                 {/* Dimension rows */}
                 {QUALITY_DIMS.map(dim => {
                   const vals = phones.map(p => {
-                    const scoreData = data.phones?.find(ph => ph.slug === p.slug)?.scores?.[dim.key];
-                    return scoreData ? parseFloat(scoreData.specs) : 0;
+                    const pd = data.phones?.find(ph => ph.slug === p.slug);
+                    return pd?.scores?.[dim.key] ? parseFloat(pd.scores[dim.key].specs) : 0;
                   });
                   return (
-                    <div key={dim.key} style={{
-                      display: 'grid',
-                      gridTemplateColumns: `200px repeat(${phones.length}, 1fr)`,
-                      borderBottom: '1px solid var(--cream-border)',
-                    }}>
-                      <div style={{
-                        padding: '.65rem 1rem',
-                        fontSize: '.82rem', fontWeight: 600,
-                        background: 'var(--cream)',
-                        display: 'flex', alignItems: 'center', gap: '.4rem',
-                      }}>
+                    <div key={dim.key} style={{ display: 'grid', gridTemplateColumns: `160px repeat(${colCount}, 1fr)`, borderBottom: '1px solid var(--cream3)' }}>
+                      <div className="compare-label-cell" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         {dim.icon} {dim.label}
                       </div>
                       {vals.map((v, i) => {
                         const win = isWinner(vals, i);
                         return (
-                          <div key={i} style={{
-                            padding: '.65rem 1rem',
-                            textAlign: 'center',
-                            borderLeft: '1px solid var(--cream-border)',
-                            background: win ? '#f0fdf4' : '',
-                            fontFamily: 'var(--font-mono)',
-                            fontWeight: 700,
-                            color: v > 0 ? scoreColor(v) : 'var(--ink-faint)',
-                          }}>
+                          <div key={i} className={`compare-value-cell ${win ? 'compare-winner' : ''}`}
+                            style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700, color: v > 0 ? scoreColor(v) : 'var(--ink3)' }}>
                             {v > 0 ? v.toFixed(1) : '—'}
                           </div>
                         );
@@ -331,70 +254,41 @@ export default function Compare({ compareList, onRemoveCompare, onAddCompare }) 
                 })}
               </div>
 
-              {/* ── AdSense ───────────────────────────────────────────────── */}
-              <AdSlot type="in-content" />
+              <AdSlot type="in-content" style={{ marginBottom: 16 }} />
 
-              {/* ── Prices comparison ────────────────────────────────────── */}
-              <div className="card" style={{ marginBottom: '1.5rem', overflow: 'hidden' }}>
-                <div style={{
-                  background: 'var(--teal)', color: '#fff',
-                  padding: '.65rem 1.25rem',
-                  fontSize: '.78rem', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '.08em',
-                }}>
-                  💰 Prices & Where to Buy
-                </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: `200px repeat(${phones.length}, 1fr)`,
-                }}>
-                  <div style={{ padding: '.75rem 1rem', background: 'var(--cream)' }} />
+              {/* Prices */}
+              <div className="card" style={{ marginBottom: 16, overflow: 'hidden' }}>
+                <div className="compare-section-header" style={{ background: 'var(--green)' }}>💰 Prices & Where to Buy</div>
+                <div style={{ display: 'grid', gridTemplateColumns: `160px repeat(${colCount}, 1fr)` }}>
+                  <div className="compare-label-cell">Source</div>
                   {phones.map((p, i) => {
-                    const phoneData = data.phones?.find(ph => ph.slug === p.slug);
-                    const prices = phoneData?.prices || [];
-                    const lowest = prices.length
-                      ? prices.reduce((a, b) => parseFloat(a.price_inr) < parseFloat(b.price_inr) ? a : b)
-                      : null;
-                    const launchPrice = p.launch_price_inr;
+                    const pd  = data.phones?.find(ph => ph.slug === p.slug);
+                    const prs = pd?.prices || [];
+                    const lw  = prs.length ? prs.reduce((a,b) => parseFloat(a.price_inr) < parseFloat(b.price_inr) ? a : b) : null;
+                    const lp  = p.launch_price_inr || p.launch_price;
                     return (
-                      <div key={i} style={{
-                        padding: '1rem',
-                        borderLeft: '1px solid var(--cream-border)',
-                        borderBottom: '1px solid var(--cream-border)',
-                      }}>
-                        {lowest ? (
+                      <div key={i} className="compare-value-cell" style={{ verticalAlign: 'top', borderBottom: 'none' }}>
+                        {lw ? (
                           <>
-                            <div style={{
-                              fontFamily: 'var(--font-mono)', fontSize: '1.1rem',
-                              fontWeight: 700, color: 'var(--teal)', marginBottom: '.25rem'
-                            }}>
-                              ₹{parseInt(lowest.price_inr).toLocaleString('en-IN')}
+                            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 700, color: 'var(--green)' }}>
+                              ₹{parseInt(lw.price_inr).toLocaleString('en-IN')}
                             </div>
-                            <div style={{ fontSize: '.72rem', color: 'var(--ink-light)', marginBottom: '.5rem' }}>
-                              on {lowest.source}
-                            </div>
-                            {lowest.affiliate_url ? (
-                              <a href={lowest.affiliate_url} target="_blank" rel="noopener noreferrer"
-                                 className="btn btn-teal btn-sm" style={{ textDecoration: 'none' }}>
-                                Buy ↗
-                              </a>
-                            ) : (
-                              <a
-                                href={`https://www.${lowest.source.toLowerCase().replace(/ /g,'')}.com/s?k=${encodeURIComponent(p.name)}`}
-                                target="_blank" rel="noopener noreferrer"
-                                className="btn btn-secondary btn-sm"
-                              >
-                                Search ↗
-                              </a>
-                            )}
+                            <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 6 }}>on {lw.source}</div>
+                            <a
+                              href={lw.affiliate_url || '#'}
+                              target="_blank" rel="noopener noreferrer"
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Buy ↗
+                            </a>
                           </>
-                        ) : launchPrice ? (
-                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1rem', color: 'var(--ink-light)' }}>
-                            ₹{parseInt(launchPrice).toLocaleString('en-IN')}
-                            <div style={{ fontSize: '.7rem', color: 'var(--ink-faint)' }}>launch price</div>
+                        ) : lp ? (
+                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--ink3)' }}>
+                            ₹{parseInt(lp).toLocaleString('en-IN')}
+                            <div style={{ fontSize: 10 }}>launch price</div>
                           </div>
                         ) : (
-                          <span style={{ color: 'var(--ink-faint)', fontSize: '.8rem' }}>—</span>
+                          <span style={{ color: 'var(--ink3)', fontSize: 12 }}>—</span>
                         )}
                       </div>
                     );
@@ -402,77 +296,43 @@ export default function Compare({ compareList, onRemoveCompare, onAddCompare }) 
                 </div>
               </div>
 
-              {/* ── Specs comparison ─────────────────────────────────────── */}
+              {/* Specs */}
               <div className="card" style={{ overflow: 'hidden' }}>
-                <div style={{
-                  background: 'var(--ink)', color: '#fff',
-                  padding: '.65rem 1.25rem',
-                  fontSize: '.78rem', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '.08em',
-                }}>
-                  📋 Full Specifications
-                </div>
-
-                {/* Section tabs */}
-                <div style={{ padding: '1rem', borderBottom: '1px solid var(--cream-border)' }}>
-                  <div className="pill-tabs" style={{ marginBottom: 0 }}>
+                <div className="compare-section-header" style={{ background: '#2a2825' }}>📋 Specifications</div>
+                <div style={{ padding: '10px 13px', borderBottom: '1px solid var(--cream3)' }}>
+                  <div className="spec-tab-list">
                     {SPEC_SECTIONS.map(s => (
                       <button
                         key={s}
-                        className={`pill-tab ${activeSpec === s ? 'active' : ''}`}
-                        onClick={() => setActiveSpec(s)}
-                        style={{ fontSize: '.78rem' }}
+                        className={`spec-tab ${specSec === s ? 'active' : ''}`}
+                        onClick={() => setSpecSec(s)}
                       >
                         {s}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                {/* Spec rows */}
                 {(() => {
-                  // Gather all param names in this section across all phones
                   const paramSet = new Set();
-                  phones.forEach(phone => {
-                    const phoneData = data.phones?.find(ph => ph.slug === phone.slug);
-                    const sectionSpecs = phoneData?.specs?.[activeSpec] || [];
-                    sectionSpecs.forEach(s => paramSet.add(s.parameter));
+                  phones.forEach(p => {
+                    const pd = data.phones?.find(ph => ph.slug === p.slug);
+                    (pd?.specs?.[specSec] || []).forEach(s => paramSet.add(s.parameter));
                   });
                   const params = Array.from(paramSet);
-
                   if (!params.length) return (
-                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--ink-light)' }}>
-                      No spec data for this section
+                    <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                      No spec data for this section yet.
                     </div>
                   );
-
                   return params.map(param => (
-                    <div key={param} style={{
-                      display: 'grid',
-                      gridTemplateColumns: `200px repeat(${phones.length}, 1fr)`,
-                      borderBottom: '1px solid var(--cream-border)',
-                    }}>
-                      <div style={{
-                        padding: '.6rem 1rem',
-                        fontSize: '.75rem', fontWeight: 700,
-                        color: 'var(--ink-light)',
-                        background: 'var(--cream)',
-                        display: 'flex', alignItems: 'center',
-                      }}>
-                        {param}
-                      </div>
-                      {phones.map((phone, i) => {
-                        const phoneData = data.phones?.find(ph => ph.slug === phone.slug);
-                        const spec = (phoneData?.specs?.[activeSpec] || []).find(s => s.parameter === param);
+                    <div key={param} style={{ display: 'grid', gridTemplateColumns: `160px repeat(${colCount}, 1fr)`, borderBottom: '1px solid var(--cream3)' }}>
+                      <div className="compare-label-cell">{param}</div>
+                      {phones.map((p, i) => {
+                        const pd   = data.phones?.find(ph => ph.slug === p.slug);
+                        const spec = (pd?.specs?.[specSec] || []).find(s => s.parameter === param);
                         return (
-                          <div key={i} style={{
-                            padding: '.6rem 1rem',
-                            fontSize: '.85rem',
-                            borderLeft: '1px solid var(--cream-border)',
-                            color: spec ? 'var(--ink)' : 'var(--ink-faint)',
-                          }}>
+                          <div key={i} className="compare-value-cell" style={{ color: spec ? 'var(--ink)' : 'var(--ink3)' }}>
                             {spec ? spec.answer : '—'}
-                            {spec?.speculated && <span className="spec-estimated">est.</span>}
                           </div>
                         );
                       })}

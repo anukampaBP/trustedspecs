@@ -17,53 +17,32 @@ const QUALITY_DIMS = [
 ];
 
 const STORE_COLORS = {
-  Amazon:            '#FF9900',
-  Flipkart:          '#2874f0',
-  Croma:             '#9f1d35',
-  'Tata Cliq':       '#2b60de',
-  'Reliance Digital':'#11a12b',
-  Manual:            '#6d28d9',
+  Amazon: '#FF9900', Flipkart: '#2874f0', Croma: '#9f1d35',
+  'Tata Cliq': '#2b60de', 'Reliance Digital': '#11a12b', Manual: '#6d28d9',
 };
 
-const SPEC_CATEGORIES = [
-  'Display', 'Back-Camera', 'Front-Camera', 'Battery',
-  'Performance', 'Storage', 'Connectivity', 'Build', 'Software', 'Audio',
-];
-
 function scoreColor(s) {
-  if (s >= 8) return '#16a34a';
-  if (s >= 6.5) return '#65a30d';
-  if (s >= 5)  return '#d97706';
+  if (s >= 8.5) return '#15803d';
+  if (s >= 7)   return '#65a30d';
+  if (s >= 5.5) return '#b45309';
   return '#dc2626';
 }
 
-function ScoreBar({ score }) {
-  const pct  = (score / 10) * 100;
-  const color = scoreColor(score);
-  return (
-    <div className="quality-bar-track">
-      <div
-        className="quality-bar-fill"
-        style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}88, ${color})` }}
-      />
-    </div>
-  );
-}
-
 export default function PhoneDetail({ onAddCompare, compareList }) {
-  const { slug }    = useParams();
-  const navigate    = useNavigate();
-  const [phone,    setPhone]    = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [specTab,  setSpecTab]  = useState(null);
-  const [similar,  setSimilar]  = useState([]);
-  const [imgError, setImgError] = useState(false);
+  const { slug }   = useParams();
+  const navigate   = useNavigate();
+  const [phone,    setPhone]   = useState(null);
+  const [loading,  setLoading] = useState(true);
+  const [specTab,  setSpecTab] = useState(null);
+  const [similar,  setSimilar] = useState([]);
+  const [imgErr,   setImgErr]  = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     setLoading(true);
     setPhone(null);
-    setImgError(false);
+    setImgErr(false);
+
     api.phone(slug)
       .then(data => {
         setPhone(data);
@@ -78,139 +57,99 @@ export default function PhoneDetail({ onAddCompare, compareList }) {
 
   if (loading) return <DetailSkeleton />;
   if (!phone)  return (
-    <div className="container" style={{ padding: '4rem 0', textAlign: 'center' }}>
+    <div style={{ textAlign: 'center', padding: '5rem 1rem' }}>
       <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>😕</div>
-      <h2>Phone not found</h2>
-      <Link to="/" className="btn btn-primary" style={{ marginTop: '1rem' }}>Back to home</Link>
+      <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: '.75rem' }}>Phone not found</h2>
+      <Link to="/" className="btn btn-primary">Back to home</Link>
     </div>
   );
 
-  const overallScore = parseFloat(phone.overall_score) || 0;
+  const score  = parseFloat(phone.overall_score) || 0;
   const scores = phone.scores || {};
   const specs  = phone.specs  || {};
   const prices = phone.prices || [];
-  const lowestPrice = prices.length
+  const lowest = prices.length
     ? prices.reduce((a, b) => parseFloat(a.price_inr) < parseFloat(b.price_inr) ? a : b)
     : null;
-
   const inCompare = compareList?.some(p => p.slug === phone.slug);
+  const img = phone.primary_image_url || phone.primary_image || '';
 
   return (
     <>
-      {/* ── Phone hero ───────────────────────────────────────────────────────── */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--cream-border)' }}>
-        <div className="container" style={{ padding: '2rem 1.25rem' }}>
+      {/* ── Phone hero ───────────────────────────────────────────────── */}
+      <div className="detail-hero">
+        <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto' }}>
           {/* Breadcrumb */}
-          <div style={{ fontSize: '.8rem', color: 'var(--ink-light)', marginBottom: '1.5rem' }}>
-            <Link to="/">Home</Link> › <Link to="/?brand={phone.brand}">{phone.brand}</Link> › {phone.name}
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>
+            <Link to="/">Home</Link> › {phone.brand} › {phone.name}
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '260px 1fr',
-            gap: '2.5rem',
-            alignItems: 'start',
-          }}>
+          <div className="detail-grid">
             {/* Image */}
-            <div style={{
-              background: 'var(--cream)',
-              borderRadius: 'var(--r-xl)',
-              padding: '2rem',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              minHeight: 280,
-            }}>
-              {phone.primary_image_url && !imgError ? (
-                <img
-                  src={phone.primary_image_url}
-                  alt={phone.name}
-                  style={{ maxHeight: 240, maxWidth: '100%', objectFit: 'contain' }}
-                  onError={() => setImgError(true)}
-                />
+            <div className="detail-img-box">
+              {img && !imgErr ? (
+                <img src={img} alt={phone.name} onError={() => setImgErr(true)} />
               ) : (
-                <div style={{ color: 'var(--ink-faint)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '.5rem' }}>📱</div>
-                  <div style={{ fontSize: '.8rem' }}>No image</div>
-                </div>
+                <div style={{ fontSize: 60, color: 'var(--cream3)' }}>📱</div>
               )}
             </div>
 
             {/* Info */}
             <div>
-              <div style={{
-                fontSize: '.75rem', fontWeight: 700, letterSpacing: '.08em',
-                textTransform: 'uppercase', color: 'var(--purple)', marginBottom: '.4rem'
-              }}>
-                {phone.brand}
-              </div>
-              <h1 style={{
-                fontFamily: 'var(--font-display)', fontSize: '2rem',
-                fontWeight: 800, lineHeight: 1.2, marginBottom: '.75rem'
-              }}>
-                {phone.name}
-              </h1>
+              <div className="detail-brand">{phone.brand}</div>
+              <h1 className="detail-name">{phone.name}</h1>
 
-              {/* Tags */}
               {phone.upgrade_tags && (
-                <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-                  {phone.upgrade_tags.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
-                    <span key={tag} className="feature-badge badge-purple">{tag}</span>
+                <div className="detail-tags">
+                  {phone.upgrade_tags.split(',').map(t => t.trim()).filter(Boolean).map(t => (
+                    <span key={t} className="tag tag-purple">{t}</span>
                   ))}
                 </div>
               )}
 
-              {/* Score + price row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '1.75rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <ScoreRing score={overallScore} size={88} strokeWidth={7} />
-                  <div style={{ fontSize: '.72rem', color: 'var(--ink-light)', marginTop: '.35rem', fontWeight: 600 }}>
-                    Overall Score
-                  </div>
-                </div>
-                {lowestPrice && (
-                  <div>
-                    <div style={{ fontSize: '.75rem', color: 'var(--ink-light)', marginBottom: '.2rem' }}>Starting from</div>
-                    <div style={{
-                      fontFamily: 'var(--font-mono)', fontSize: '1.75rem',
-                      fontWeight: 700, color: 'var(--teal)'
-                    }}>
-                      ₹{parseInt(lowestPrice.price_inr).toLocaleString('en-IN')}
-                    </div>
-                    <div style={{ fontSize: '.75rem', color: 'var(--ink-light)' }}>
-                      on {lowestPrice.source}
+              <div className="detail-score-price">
+                {score > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <ScoreRing score={score} size="lg" />
+                    <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                      Overall Score
                     </div>
                   </div>
                 )}
-                {!lowestPrice && phone.launch_price_inr && (
+                {lowest ? (
                   <div>
-                    <div style={{ fontSize: '.75rem', color: 'var(--ink-light)', marginBottom: '.2rem' }}>Launch price</div>
-                    <div style={{
-                      fontFamily: 'var(--font-mono)', fontSize: '1.75rem',
-                      fontWeight: 700, color: 'var(--teal)'
-                    }}>
-                      ₹{parseInt(phone.launch_price_inr).toLocaleString('en-IN')}
+                    <div className="detail-price-lbl">Starting from</div>
+                    <div className="detail-price-val">
+                      ₹{parseInt(lowest.price_inr).toLocaleString('en-IN')}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>on {lowest.source}</div>
+                  </div>
+                ) : (phone.launch_price_inr || phone.launch_price) ? (
+                  <div>
+                    <div className="detail-price-lbl">Launch price</div>
+                    <div className="detail-price-val">
+                      ₹{parseInt(phone.launch_price_inr || phone.launch_price).toLocaleString('en-IN')}
                     </div>
                   </div>
-                )}
+                ) : null}
               </div>
 
-              {/* CTA buttons */}
-              <div style={{ display: 'flex', gap: '.75rem', flexWrap: 'wrap' }}>
+              <div className="detail-actions">
                 <button
-                  className={`btn ${inCompare ? 'btn-coral' : 'btn-primary'}`}
+                  className={`btn ${inCompare ? 'btn-secondary' : 'btn-primary'}`}
                   onClick={() => onAddCompare?.(phone)}
                 >
-                  {inCompare ? '✓ In Compare List' : '+ Add to Compare'}
+                  {inCompare ? '✓ In compare' : '+ Add to compare'}
                 </button>
                 {prices.length > 0 && (
-                  <a href="#prices" className="btn btn-secondary">View Prices ↓</a>
+                  <a href="#prices" className="btn btn-secondary">View prices ↓</a>
                 )}
               </div>
 
-              {/* Release info */}
               {phone.release_date && (
-                <div style={{ marginTop: '1rem', fontSize: '.8rem', color: 'var(--ink-light)' }}>
+                <div style={{ marginTop: 12, fontSize: 12, color: 'var(--ink3)' }}>
                   Released {new Date(phone.release_date).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
-                  {phone.discontinued ? ' · Discontinued' : ''}
+                  {phone.discontinued || phone.is_discontinued ? ' · Discontinued' : ''}
                 </div>
               )}
             </div>
@@ -218,45 +157,47 @@ export default function PhoneDetail({ onAddCompare, compareList }) {
         </div>
       </div>
 
-      <div className="container" style={{ padding: '2rem 1.25rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1.5rem', alignItems: 'start' }}>
+      {/* ── Detail content ───────────────────────────────────────────── */}
+      <div className="detail-content">
+        <div className="detail-two-col">
 
-          {/* Left — main content */}
+          {/* Left */}
           <div>
 
-            {/* ── Quality Scores ─────────────────────────────────────────────── */}
+            {/* Quality scores */}
             {Object.keys(scores).length > 0 && (
-              <div className="card" style={{ marginBottom: '1.25rem' }}>
+              <div className="card" style={{ marginBottom: 14 }}>
                 <div className="card-header">
-                  <h2>🎯 Quality Scores</h2>
-                  <span style={{ fontSize: '.78rem', color: 'var(--ink-light)' }}>
-                    Based on YouTube review analysis
-                  </span>
+                  <span style={{ fontWeight: 700 }}>🎯 Quality Scores</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink3)' }}>From YouTube review research</span>
                 </div>
-                <div className="card-body">
+                <div style={{ padding: '0 16px 8px' }}>
                   {QUALITY_DIMS.map(dim => {
                     const row = scores[dim.key];
                     if (!row) return null;
                     const s = parseFloat(row.specs) || 0;
+                    const pct = (s / 10) * 100;
+                    const col = scoreColor(s);
                     return (
-                      <div key={dim.key} className="quality-bar-row">
-                        <div className="quality-bar-label">{dim.icon} {dim.label}</div>
-                        <ScoreBar score={s} />
-                        <div className="quality-score-val" style={{ color: scoreColor(s) }}>
-                          {s.toFixed(1)}
+                      <div key={dim.key} className="quality-row">
+                        <div className="quality-label">{dim.icon} {dim.label}</div>
+                        <div className="quality-track">
+                          <div className="quality-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${col}66, ${col})` }} />
                         </div>
+                        <div className="quality-score" style={{ color: col }}>{s.toFixed(1)}</div>
                       </div>
                     );
                   })}
                   {scores.overall?.reviewer_notes && (
                     <div style={{
-                      marginTop: '1rem', padding: '1rem',
+                      margin: '10px 0 6px',
+                      padding: '10px 12px',
                       background: 'var(--purple-pale)',
-                      borderRadius: 'var(--r-md)',
-                      fontSize: '.875rem', color: 'var(--ink-mid)',
+                      borderRadius: 'var(--r)',
                       borderLeft: '3px solid var(--purple)',
+                      fontSize: 13, color: 'var(--ink2)',
                     }}>
-                      <strong style={{ color: 'var(--purple)' }}>Reviewer notes: </strong>
+                      <strong style={{ color: 'var(--purple)' }}>Notes: </strong>
                       {scores.overall.reviewer_notes}
                     </div>
                   )}
@@ -264,29 +205,29 @@ export default function PhoneDetail({ onAddCompare, compareList }) {
               </div>
             )}
 
-            {/* ── AdSense in-content ──────────────────────────────────────────── */}
-            <AdSlot type="in-content" />
+            <AdSlot type="in-content" style={{ marginBottom: 14 }} />
 
-            {/* ── Specs ─────────────────────────────────────────────────────── */}
+            {/* Specs */}
             {Object.keys(specs).length > 0 && (
-              <div className="card" style={{ marginBottom: '1.25rem' }}>
-                <div className="card-header"><h2>📋 Full Specifications</h2></div>
-                <div className="card-body" style={{ paddingTop: 0 }}>
-                  {/* Spec category tabs */}
-                  <div className="pill-tabs" style={{ paddingTop: '1.25rem', marginBottom: '1rem' }}>
+              <div className="card" style={{ marginBottom: 14 }}>
+                <div className="card-header">
+                  <span style={{ fontWeight: 700 }}>📋 Full Specifications</span>
+                </div>
+                <div style={{ padding: '12px 16px 0' }}>
+                  <div className="spec-tab-list">
                     {Object.keys(specs).map(cat => (
                       <button
                         key={cat}
-                        className={`pill-tab ${specTab === cat ? 'active' : ''}`}
+                        className={`spec-tab ${specTab === cat ? 'active' : ''}`}
                         onClick={() => setSpecTab(cat)}
-                        style={{ fontSize: '.78rem', padding: '.3rem .75rem' }}
                       >
                         {cat}
                       </button>
                     ))}
                   </div>
-
-                  {specTab && specs[specTab] && (
+                </div>
+                {specTab && specs[specTab] && (
+                  <div style={{ padding: '0 16px 12px' }}>
                     <table className="spec-table">
                       <tbody>
                         {specs[specTab].map((s, i) => (
@@ -294,140 +235,118 @@ export default function PhoneDetail({ onAddCompare, compareList }) {
                             <th>{s.parameter}</th>
                             <td>
                               <strong>{s.answer}</strong>
-                              {s.speculated ? <span className="spec-estimated">(est.)</span> : null}
+                              {s.speculated ? <span className="spec-est">(est.)</span> : null}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* ── Prices ────────────────────────────────────────────────────── */}
+            {/* Prices */}
             {prices.length > 0 && (
-              <div className="card" id="prices" style={{ marginBottom: '1.25rem' }}>
+              <div className="card" id="prices" style={{ marginBottom: 14 }}>
                 <div className="card-header">
-                  <h2>💰 Where to Buy</h2>
-                  <span style={{ fontSize: '.72rem', color: 'var(--ink-light)' }}>
-                    Prices updated regularly
-                  </span>
+                  <span style={{ fontWeight: 700 }}>💰 Where to Buy</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Prices updated regularly</span>
                 </div>
-                <div className="card-body">
+                <div style={{ padding: 16 }}>
                   <div className="price-strip">
                     {prices.map((p, i) => (
-                      <div key={i} className="price-source-card">
-                        <div className="price-source-name" style={{ color: STORE_COLORS[p.source] || 'var(--ink)' }}>
+                      <div key={i} className="price-card">
+                        <div className="price-source" style={{ color: STORE_COLORS[p.source] || 'var(--ink)' }}>
                           {p.source}
                         </div>
-                        <div className="price-source-amount">
+                        <div className="price-amount">
                           ₹{parseInt(p.price_inr).toLocaleString('en-IN')}
                         </div>
-                        {p.variant && (
-                          <div style={{ fontSize: '.72rem', color: 'var(--ink-light)' }}>{p.variant}</div>
-                        )}
-                        <div>
+                        {p.variant && <div className="price-variant">{p.variant}</div>}
+                        <div style={{ marginBottom: 6 }}>
                           {p.in_stock
-                            ? <span className="feature-badge badge-green" style={{ fontSize: '.68rem' }}>In stock</span>
-                            : <span className="feature-badge badge-red" style={{ fontSize: '.68rem' }}>Out of stock</span>
+                            ? <span className="tag tag-green">In stock</span>
+                            : <span className="tag" style={{ background: 'var(--red-dim)', color: 'var(--red)' }}>Out of stock</span>
                           }
                         </div>
-                        {/* Direct link — no affiliate tracking needed for now */}
-                        {p.affiliate_url ? (
-                          <a
-                            href={p.affiliate_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="price-source-link"
-                          >
-                            Buy now ↗
-                          </a>
-                        ) : (
-                          <a
-                            href={`https://www.${p.source.toLowerCase().replace(' ', '')}.com/s?k=${encodeURIComponent(phone.name)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="price-source-link"
-                          >
-                            Search on {p.source} ↗
-                          </a>
-                        )}
+                        <a
+                          href={p.affiliate_url || `https://www.${p.source.toLowerCase().replace(/ /g,'')}.com/s?k=${encodeURIComponent(phone.name)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="price-buy-link"
+                        >
+                          Buy now ↗
+                        </a>
                       </div>
                     ))}
                   </div>
-                  <p style={{ fontSize: '.72rem', color: 'var(--ink-faint)', marginTop: '1rem' }}>
-                    * Prices are indicative. Click to verify current price on the store's website.
+                  <p style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10 }}>
+                    * Prices are indicative. Verify on the store before purchasing.
                   </p>
                 </div>
               </div>
             )}
-
           </div>
 
           {/* Right sidebar */}
-          <div style={{ position: 'sticky', top: 'calc(var(--nav-h) + 1rem)' }}>
-            {/* Score summary card */}
-            {overallScore > 0 && (
-              <div className="card" style={{ marginBottom: '1rem', textAlign: 'center', padding: '1.5rem' }}>
-                <div style={{ marginBottom: '.75rem' }}>
-                  <ScoreRing score={overallScore} size={96} strokeWidth={8} />
+          <div className="detail-sticky">
+            {score > 0 && (
+              <div className="card" style={{ textAlign: 'center', padding: '18px 16px', marginBottom: 12 }}>
+                <ScoreRing score={score} size="lg" showLabel />
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, marginTop: 20, marginBottom: 3 }}>
+                  {score >= 8.5 ? 'Excellent' : score >= 7 ? 'Very Good' : score >= 5.5 ? 'Good' : 'Average'}
                 </div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1rem' }}>
-                  Overall Score
-                </div>
-                <div style={{ fontSize: '.8rem', color: 'var(--ink-light)', marginTop: '.25rem' }}>
-                  {overallScore >= 8 ? 'Excellent' : overallScore >= 6.5 ? 'Very Good' : overallScore >= 5 ? 'Good' : 'Average'}
-                </div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Overall Score</div>
                 {scores.overall?.review_count > 0 && (
-                  <div style={{ fontSize: '.72rem', color: 'var(--ink-faint)', marginTop: '.5rem' }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
                     Based on {scores.overall.review_count} reviews
                   </div>
                 )}
               </div>
             )}
 
-            {/* Quick specs */}
-            <div className="card" style={{ marginBottom: '1rem' }}>
-              <div className="card-header"><h2 style={{ fontSize: '.9rem' }}>Quick Specs</h2></div>
-              <div style={{ padding: '1rem' }}>
-                {phone.quick_specs && phone.quick_specs.map((s, i) => (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--cream3)', fontWeight: 700, fontSize: 13 }}>
+                Quick Specs
+              </div>
+              <div style={{ padding: '8px 14px' }}>
+                {phone.quick_specs?.map((s, i) => (
                   <div key={i} style={{
-                    display: 'flex', justifyContent: 'space-between', gap: '.5rem',
-                    padding: '.45rem 0',
-                    borderBottom: i < phone.quick_specs.length - 1 ? '1px solid var(--cream-border)' : 'none',
-                    fontSize: '.82rem',
+                    display: 'flex', justifyContent: 'space-between', gap: 8,
+                    padding: '5px 0', fontSize: 12,
+                    borderBottom: i < phone.quick_specs.length - 1 ? '1px solid var(--cream3)' : 'none',
                   }}>
-                    <span style={{ color: 'var(--ink-light)' }}>{s.label}</span>
+                    <span style={{ color: 'var(--ink3)' }}>{s.label}</span>
                     <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '55%' }}>{s.value}</span>
                   </div>
                 ))}
+                {!phone.quick_specs && (
+                  <div style={{ color: 'var(--ink3)', fontSize: 12, padding: '4px 0' }}>
+                    Check full specs below
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Sidebar ad */}
             <AdSlot type="rectangle" />
 
-            {/* Compare nudge */}
             <div style={{
-              marginTop: '1rem',
+              marginTop: 12,
               background: 'var(--purple-pale)',
-              border: '1.5px solid var(--purple-border, #c4b5fd)',
+              border: '1.5px solid var(--purple-border)',
               borderRadius: 'var(--r-lg)',
-              padding: '1.25rem',
+              padding: '14px',
               textAlign: 'center',
             }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '.5rem' }}>⚡</div>
-              <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: '.5rem' }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>⚡</div>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 5 }}>
                 Compare with another phone
               </div>
               <button
                 className="btn btn-primary btn-sm"
-                style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => {
-                  onAddCompare?.(phone);
-                  navigate('/compare');
-                }}
+                style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}
+                onClick={() => { onAddCompare?.(phone); navigate('/compare'); }}
               >
                 + Add to Compare
               </button>
@@ -436,36 +355,36 @@ export default function PhoneDetail({ onAddCompare, compareList }) {
 
         </div>
 
-        {/* ── Similar phones ───────────────────────────────────────────────── */}
+        {/* Similar phones */}
         {similar.length > 0 && (
-          <div style={{ marginTop: '2rem' }}>
-            <div className="section-eyebrow">You might also like</div>
-            <h2 className="section-title">Similar Phones</h2>
+          <div style={{ marginTop: 28 }}>
+            <div className="section-header">
+              <h2 className="section-title">
+                <span className="section-title-icon">📱</span>
+                Similar phones
+              </h2>
+            </div>
             <div className="phone-grid">
               {similar.slice(0, 4).map(p => (
                 <div
                   key={p.id || p.slug}
                   className="phone-card"
                   onClick={() => navigate('/phones/' + p.slug)}
-                  style={{ cursor: 'pointer' }}
                 >
-                  <div className="phone-card-img-wrap" style={{ minHeight: 140 }}>
-                    {p.primary_image_url ? (
-                      <img src={p.primary_image_url} alt={p.name} className="phone-card-img" />
+                  <div className="phone-card-img">
+                    {(p.primary_image_url || p.primary_image) ? (
+                      <img src={p.primary_image_url || p.primary_image} alt={p.name} />
                     ) : (
-                      <div style={{ color: 'var(--ink-faint)', fontSize: '.75rem' }}>No image</div>
-                    )}
-                    {p.overall_score > 0 && (
-                      <div className="phone-card-score-badge">
-                        <ScoreRing score={parseFloat(p.overall_score)} size={44} strokeWidth={4} animated={false} />
-                      </div>
+                      <div className="phone-card-img-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>📱</div>
                     )}
                   </div>
                   <div className="phone-card-body">
                     <div className="phone-card-brand">{p.brand}</div>
                     <div className="phone-card-name">{p.name}</div>
-                    {p.launch_price_inr && (
-                      <div className="phone-card-price">₹{parseInt(p.launch_price_inr).toLocaleString('en-IN')}</div>
+                    {(p.launch_price_inr || p.launch_price) && (
+                      <div className="phone-card-price">
+                        ₹{parseInt(p.launch_price_inr || p.launch_price).toLocaleString('en-IN')}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -478,24 +397,28 @@ export default function PhoneDetail({ onAddCompare, compareList }) {
   );
 }
 
+function Card({ children, style }) {
+  return <div className="card" style={style}>{children}</div>;
+}
+
 function DetailSkeleton() {
   return (
     <div>
-      <div style={{ background: 'var(--white)', padding: '2rem 0', borderBottom: '1px solid var(--cream-border)' }}>
-        <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '2.5rem' }}>
-            <div className="skeleton" style={{ height: 280, borderRadius: 'var(--r-xl)' }} />
+      <div className="detail-hero">
+        <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto' }}>
+          <div className="detail-grid">
+            <div className="skeleton" style={{ height: 260, borderRadius: 'var(--r-xl)' }} />
             <div>
-              <div className="skeleton" style={{ height: 14, width: '30%', marginBottom: 16 }} />
-              <div className="skeleton" style={{ height: 32, width: '70%', marginBottom: 16 }} />
-              <div className="skeleton" style={{ height: 80, width: 80, borderRadius: '50%', marginBottom: 16 }} />
-              <div className="skeleton" style={{ height: 44, width: 200, borderRadius: 99 }} />
+              <div className="skeleton" style={{ height: 12, width: '30%', marginBottom: 14 }} />
+              <div className="skeleton" style={{ height: 28, width: '70%', marginBottom: 14 }} />
+              <div className="skeleton" style={{ height: 80, width: 80, borderRadius: '50%', marginBottom: 14 }} />
+              <div className="skeleton" style={{ height: 38, width: 180, borderRadius: 99 }} />
             </div>
           </div>
         </div>
       </div>
-      <div className="container" style={{ padding: '2rem 1.25rem' }}>
-        <div className="skeleton" style={{ height: 300, borderRadius: 'var(--r-xl)', marginBottom: '1.25rem' }} />
+      <div className="detail-content">
+        <div className="skeleton" style={{ height: 280, borderRadius: 'var(--r-xl)', marginBottom: 14 }} />
         <div className="skeleton" style={{ height: 200, borderRadius: 'var(--r-xl)' }} />
       </div>
     </div>

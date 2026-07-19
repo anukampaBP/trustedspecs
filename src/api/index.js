@@ -1,5 +1,5 @@
 // src/api/index.js
-const BASE = 'https://api.trustedspecs.com';
+const BASE = import.meta.env.VITE_API_URL || 'https://api.trustedspecs.com';
 
 async function get(path) {
   const r = await fetch(BASE + path);
@@ -8,34 +8,21 @@ async function get(path) {
 }
 
 export const api = {
-  // Phones list with optional filters
-  phones: (params = {}) => {
+  phones:       (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return get('/phones' + (q ? '?' + q : ''));
   },
-
-  // Single phone detail
-  phone: (slug) => get('/phones/' + slug),
-
-  // Search
-  search: (q) => get('/search?q=' + encodeURIComponent(q)),
-
-  // Compare up to 3 phones
-  compare: (slugs) => get('/compare?phones=' + slugs.join(',')),
-
-  // Similar phones
-  similar: (slug) => get('/similar/' + slug),
-
-  // Budget finder
-  budget: (params) => get('/budget?' + new URLSearchParams(params).toString()),
-
-  // Brands list
-  brands: () => get('/brands'),
-
-  // Articles
-  articles: (params = {}) => get('/articles?' + new URLSearchParams(params).toString()),
-  article: (slug) => get('/articles/' + slug),
-
-  // Stats for homepage
-  stats: () => get('/stats'),
+  phone:        (slug)   => get('/phones/' + slug),
+  search:       (q)      => get('/search?q=' + encodeURIComponent(q)),
+  compare:      (slugs)  => get('/compare?phones=' + slugs.join(',')),
+  similar:      (slug)   => get('/similar/' + slug),
+  budget:       (params) => get('/budget?' + new URLSearchParams(params).toString()),
+  brands:       ()       => get('/brands'),
+  articles:     (params = {}) => get('/articles?' + new URLSearchParams(params).toString()),
+  article:      (slug)   => get('/articles/' + slug),
+  stats:        ()       => get('/stats'),
+  // New endpoints
+  topComparisons: ()     => get('/top-comparisons'),
+  upcoming:     ()       => get('/upcoming'),
+  topSearched:  ()       => get('/top-searched'),
 };

@@ -1,246 +1,408 @@
 // src/pages/Home.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import PhoneCard, { PhoneCardSkeleton } from '../components/PhoneCard';
 import ScoreRing from '../components/ScoreRing';
 import AdSlot from '../components/AdSlot';
 
-const CATEGORIES = [
-  { key: 'all',     label: 'All Phones',    icon: '📱' },
-  { key: 'gaming',  label: 'Gaming',         icon: '🎮' },
-  { key: 'camera',  label: 'Camera',         icon: '📷' },
-  { key: 'battery', label: 'Battery',        icon: '🔋' },
-  { key: '5g',      label: '5G',             icon: '📶' },
-  { key: 'budget',  label: 'Under ₹20K',    icon: '💰' },
-  { key: 'flagship',label: 'Flagship',       icon: '👑' },
+/* ── Static data (replaced with API when available) ─────────────────────── */
+const BRANDS = [
+  { name: 'Samsung',  count: 38, bg: '#1428A0', init: 'Sa' },
+  { name: 'Xiaomi',   count: 31, bg: '#FF6900', init: 'Mi' },
+  { name: 'OnePlus',  count: 22, bg: '#F5010C', init: '1+' },
+  { name: 'Realme',   count: 24, bg: '#c8a000', fg: '#000', init: 'Re' },
+  { name: 'Vivo',     count: 19, bg: '#415FFF', init: 'Vi' },
+  { name: 'OPPO',     count: 16, bg: '#1D8348', init: 'Op' },
+  { name: 'iQOO',     count: 11, bg: '#7B2FBE', init: 'iQ' },
+  { name: 'Apple',    count: 9,  bg: '#555555', init: '🍎' },
+  { name: 'Google',   count: 7,  bg: '#4285F4', init: 'G' },
+  { name: 'Nothing',  count: 5,  bg: '#0f0e0c', init: 'Nt' },
+  { name: 'Motorola', count: 8,  bg: '#E1000F', init: 'Mo' },
+  { name: 'Nokia',    count: 4,  bg: '#005AFF', init: 'Nk' },
 ];
 
-const BUDGET_RANGES = [
-  { label: 'Under ₹15,000',  max: 15000 },
-  { label: '₹15K – ₹25K',   min: 15000, max: 25000 },
-  { label: '₹25K – ₹40K',   min: 25000, max: 40000 },
-  { label: '₹40K – ₹60K',   min: 40000, max: 60000 },
-  { label: 'Above ₹60K',    min: 60000 },
+const BUDGET_OPTS = [
+  { label: 'All prices', val: 'all' },
+  { label: 'Under ₹15K', val: '15' },
+  { label: '₹15K–25K',  val: '15-25' },
+  { label: '₹25K–40K',  val: '25-40' },
+  { label: '₹40K–60K',  val: '40-60' },
+  { label: 'Above ₹60K', val: '60+' },
 ];
 
+const CAT_OPTS = [
+  { label: 'All',      val: 'all' },
+  { label: '📷 Camera', val: 'camera' },
+  { label: '🎮 Gaming', val: 'gaming' },
+  { label: '🔋 Battery', val: 'battery' },
+  { label: '📶 5G',     val: '5g' },
+  { label: '👑 Flagship', val: 'flagship' },
+  { label: '💰 Value',  val: 'value' },
+];
+
+const MOCK_UPCOMING = [
+  { badge: 'Jul 2025', brand: 'Samsung', name: 'Galaxy Z Flip 7',  detail: 'Foldable · ~₹1,09,999' },
+  { badge: 'Aug 2025', brand: 'OnePlus', name: 'OnePlus 13T',      detail: 'Flagship · ~₹64,999' },
+  { badge: 'Aug 2025', brand: 'Google',  name: 'Pixel 9a',         detail: 'Mid-range · ~₹49,999' },
+  { badge: 'Sep 2025', brand: 'Apple',   name: 'iPhone 17 Pro',    detail: 'Flagship · ~₹1,34,999' },
+  { badge: 'Sep 2025', brand: 'Xiaomi',  name: 'Xiaomi 15 Ultra',  detail: 'Flagship · ~₹89,999' },
+  { badge: 'Oct 2025', brand: 'Nothing', name: 'Nothing Phone 3 Ultra', detail: 'Premium · ~₹54,999' },
+];
+
+const MOCK_CMP = [
+  { a: 'OnePlus 13',       b: 'Galaxy S25+',    count: '2.4K' },
+  { a: 'Redmi Note 14 Pro+', b: 'Poco X7 Pro', count: '1.8K' },
+  { a: 'iQOO Neo 10',     b: 'Realme GT 7 Pro', count: '1.1K' },
+  { a: 'Pixel 9 Pro',     b: 'iPhone 16 Pro',   count: '980' },
+  { a: 'Nothing 3a Pro',  b: 'OnePlus Nord 4',  count: '720' },
+];
+
+const DIMS = [
+  { icon: '☀️', name: 'Daytime camera',  desc: 'Colour, sharpness, dynamic range' },
+  { icon: '🌙', name: 'Night camera',    desc: 'Low-light, noise, AI processing' },
+  { icon: '🎬', name: 'Video',           desc: 'Stabilisation, 4K quality' },
+  { icon: '🎮', name: 'Gaming',          desc: 'Frame rate, heat, GPU speed' },
+  { icon: '🔋', name: 'Battery life',    desc: 'Screen-on time, charge speed' },
+  { icon: '🔊', name: 'Speaker',         desc: 'Volume, clarity, stereo' },
+  { icon: '📞', name: 'Call quality',    desc: 'Mic, earpiece, signal handling' },
+  { icon: '🤖', name: 'Software',        desc: 'UI speed, bloatware, updates' },
+];
+
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+function inBudget(phone, budget) {
+  if (budget === 'all') return true;
+  const p = parseInt(phone.launch_price_inr || phone.launch_price || 0);
+  if (!p) return budget === 'all';
+  if (budget === '15')    return p < 15000;
+  if (budget === '15-25') return p >= 15000 && p <= 25000;
+  if (budget === '25-40') return p > 25000  && p <= 40000;
+  if (budget === '40-60') return p > 40000  && p <= 60000;
+  if (budget === '60+')   return p > 60000;
+  return true;
+}
+function inCat(phone, cat) {
+  if (cat === 'all') return true;
+  const tags = (phone.upgrade_tags || '').toLowerCase();
+  return tags.includes(cat);
+}
+
+/* ── Component ───────────────────────────────────────────────────────────── */
 export default function Home({ compareList, onAddCompare }) {
-  const [phones,   setPhones]   = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [activeTab, setTab]     = useState('all');
-  const [stats,    setStats]    = useState({ phones: 227, brands: 28, reviews: 450 });
+  const [phones,     setPhones]    = useState([]);
+  const [loading,    setLoading]   = useState(true);
+  const [stats,      setStats]     = useState({ phones: 227, brands: 28 });
+  const [searched,   setSearched]  = useState([]);
+  const [upcoming,   setUpcoming]  = useState(MOCK_UPCOMING);
+  const [comparisons,setCmps]      = useState(MOCK_CMP);
+  const [articles,   setArticles]  = useState([]);
+  const [budget,     setBudget]    = useState('all');
+  const [cat,        setCat]       = useState('all');
+  const [activeBrand,setBrand]     = useState('');
   const navigate = useNavigate();
 
+  // Load phones
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const params = { limit: 12, status: 1 };
-        if (activeTab !== 'all') params.tag = activeTab;
-        const data = await api.phones(params);
-        setPhones(Array.isArray(data) ? data : (data.phones || []));
-      } catch {
-        setPhones([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [activeTab]);
+    setLoading(true);
+    api.phones({ limit: 24, status: 1 })
+      .then(d => setPhones(Array.isArray(d) ? d : (d.phones || [])))
+      .catch(() => setPhones([]))
+      .finally(() => setLoading(false));
+  }, []);
 
+  // Load supporting data
   useEffect(() => {
     api.stats().then(setStats).catch(() => {});
+    api.topSearched().then(d => setSearched(Array.isArray(d) ? d.slice(0, 5) : [])).catch(() => {});
+    api.topComparisons().then(d => Array.isArray(d) && d.length && setCmps(d)).catch(() => {});
+    api.upcoming().then(d => Array.isArray(d) && d.length && setUpcoming(d)).catch(() => {});
+    api.articles({ limit: 4 }).then(d => setArticles(Array.isArray(d) ? d : (d.articles || []))).catch(() => {});
   }, []);
+
+  // Filter phones
+  const filtered = phones.filter(p => {
+    const bOk = inBudget(p, budget);
+    const cOk = inCat(p, cat);
+    const brOk = !activeBrand || p.brand === activeBrand;
+    return bOk && cOk && brOk;
+  });
+
+  const hasFilter = budget !== 'all' || cat !== 'all' || activeBrand !== '';
+  function clearFilters() { setBudget('all'); setCat('all'); setBrand(''); }
+
+  function filterLabel() {
+    const parts = [];
+    if (activeBrand) parts.push(activeBrand);
+    if (budget !== 'all') parts.push(BUDGET_OPTS.find(b => b.val === budget)?.label);
+    if (cat !== 'all') parts.push(CAT_OPTS.find(c => c.val === cat)?.label);
+    return 'Showing: ' + parts.join(' · ');
+  }
 
   return (
     <>
-      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <section className="hero">
-        <div className="container hero-content">
-          <div className="hero-eyebrow">
-            ✦ Real scores from real YouTube reviews
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
+      <div className="hero">
+        <div className="hero-eyebrow">✓ Real scores from real YouTube reviews</div>
+        <h1 className="hero-title">
+          Find your perfect phone.<br />
+          <em>We did the homework.</em>
+        </h1>
+        <p className="hero-sub">
+          Every phone gets scored across 8 real-world dimensions — camera, battery,
+          gaming, speaker, and more. Based on hours of YouTube research.
+        </p>
+        <div className="hero-stats">
+          <div>
+            <div className="hero-stat-val">{stats.phones || 227}</div>
+            <div className="hero-stat-lbl">phones scored</div>
           </div>
-          <h1 className="hero-title">
-            Find your perfect phone.<br />
-            <span>Not just specs.</span>
-          </h1>
-          <p className="hero-sub">
-            We watch hours of YouTube reviews so you don't have to.
-            Every phone gets a real-world score across 8 dimensions — camera,
-            battery, gaming, speaker, and more.
-          </p>
-          <div className="hero-actions">
-            <Link to="/compare" className="btn btn-coral btn-lg">
-              Compare Phones
-            </Link>
-            <Link to="/budget" className="btn btn-lg" style={{
-              background: 'rgba(255,255,255,.15)',
-              color: '#fff',
-              border: '1.5px solid rgba(255,255,255,.3)',
-            }}>
-              Find by Budget
-            </Link>
+          <div>
+            <div className="hero-stat-val">{stats.brands || 28}</div>
+            <div className="hero-stat-lbl">brands</div>
           </div>
-
-          {/* Stats */}
-          <div className="hero-stats">
-            {[
-              { value: stats.phones || 227, label: 'Phones reviewed' },
-              { value: stats.brands || 28,  label: 'Brands covered' },
-              { value: '8',                  label: 'Score dimensions' },
-            ].map(s => (
-              <div key={s.label}>
-                <div className="hero-stat-value">{s.value}+</div>
-                <div className="hero-stat-label">{s.label}</div>
-              </div>
-            ))}
+          <div>
+            <div className="hero-stat-val">8</div>
+            <div className="hero-stat-lbl">score dimensions</div>
           </div>
         </div>
-      </section>
-
-      {/* ── AdSense leaderboard ───────────────────────────────────────────────── */}
-      <div className="container" style={{ marginTop: '1.5rem' }}>
-        <AdSlot type="leaderboard" />
       </div>
 
-      {/* ── How we score ─────────────────────────────────────────────────────── */}
-      <section style={{ padding: '4rem 0 3rem', background: 'var(--white)' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <div className="section-eyebrow" style={{ justifyContent: 'center' }}>Our Method</div>
-            <h2 className="section-title" style={{ marginBottom: '.5rem' }}>
-              How TrustedSpecs scores phones
-            </h2>
-            <p className="section-sub" style={{ margin: '0 auto', maxWidth: 520 }}>
-              We study multiple YouTube reviews per phone and score 8 real-world dimensions, not marketing specs.
-            </p>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: '1rem',
-          }}>
-            {[
-              { dim: 'Daytime Camera', icon: '☀️', desc: 'Sharpness, colour accuracy, dynamic range' },
-              { dim: 'Night Camera',   icon: '🌙', desc: 'Low-light detail, noise handling, AI processing' },
-              { dim: 'Gaming',         icon: '🎮', desc: 'Frame rates, heat management, GPU performance' },
-              { dim: 'Battery Life',   icon: '🔋', desc: 'Screen-on time, charge speed, efficiency' },
-              { dim: 'Speaker',        icon: '🔊', desc: 'Volume, clarity, stereo separation' },
-              { dim: 'Video',          icon: '🎬', desc: 'Stabilisation, 4K quality, slo-mo' },
-              { dim: 'Call Quality',   icon: '📞', desc: 'Mic clarity, earpiece, signal handling' },
-              { dim: 'Software',       icon: '🤖', desc: 'Bloatware, updates, UI smoothness' },
-            ].map(d => (
-              <div key={d.dim} className="card" style={{ padding: '1.1rem' }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: '.5rem' }}>{d.icon}</div>
-                <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: '.3rem' }}>{d.dim}</div>
-                <div style={{ fontSize: '.78rem', color: 'var(--ink-light)' }}>{d.desc}</div>
+      {/* ── Brand strip ───────────────────────────────────────────────── */}
+      <div className="brand-strip">
+        <div className="brand-strip-label">Browse by brand</div>
+        <div className="brand-row">
+          {BRANDS.map(b => (
+            <div
+              key={b.name}
+              className={`brand-chip ${activeBrand === b.name ? 'active' : ''}`}
+              onClick={() => setBrand(activeBrand === b.name ? '' : b.name)}
+            >
+              <div className="brand-logo" style={{ background: b.bg, color: b.fg || '#fff' }}>
+                {b.init}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Phone listings ────────────────────────────────────────────────────── */}
-      <section style={{ padding: '3rem 0' }}>
-        <div className="container">
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            alignItems: 'flex-end', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem'
-          }}>
-            <div>
-              <div className="section-eyebrow">Browse</div>
-              <h2 className="section-title" style={{ marginBottom: 0 }}>Top Phones</h2>
+              <span className="brand-chip-name">{b.name}</span>
+              <span className="brand-chip-count">{b.count}</span>
             </div>
-            <Link to="/phones" className="btn btn-secondary btn-sm">View all phones →</Link>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Category tabs */}
-          <div className="pill-tabs">
-            {CATEGORIES.map(cat => (
+      {/* ── Combined filter bar ────────────────────────────────────────── */}
+      <div className="filter-bar">
+        <div className="filter-inner">
+          <div className="filter-group">
+            <span className="filter-group-label">Budget</span>
+            {BUDGET_OPTS.map(o => (
               <button
-                key={cat.key}
-                className={`pill-tab ${activeTab === cat.key ? 'active' : ''}`}
-                onClick={() => setTab(cat.key)}
+                key={o.val}
+                className={`fpill ${budget === o.val ? 'active-budget' : ''}`}
+                onClick={() => setBudget(o.val)}
               >
-                {cat.icon} {cat.label}
+                {o.label}
               </button>
             ))}
           </div>
+          <div className="filter-group">
+            <span className="filter-group-label">Best for</span>
+            {CAT_OPTS.map(o => (
+              <button
+                key={o.val}
+                className={`fpill ${cat === o.val ? 'active-cat' : ''}`}
+                onClick={() => setCat(o.val)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
-          {/* Phone grid */}
+      {/* Active filter summary */}
+      {hasFilter && (
+        <div className="filter-summary">
+          <span>🔍</span>
+          <span>{filterLabel()}</span>
+          <button className="filter-summary-clear" onClick={clearFilters}>
+            Clear filters
+          </button>
+        </div>
+      )}
+
+      {/* ── Page content ──────────────────────────────────────────────── */}
+      <div className="page-content">
+
+        {/* Top phones */}
+        <div className="section">
+          <div className="section-header">
+            <h2 className="section-title">
+              <span className="section-title-icon">🔥</span>
+              Top phones right now
+            </h2>
+            <Link to="/phones" className="section-link">View all →</Link>
+          </div>
           <div className="phone-grid">
             {loading
               ? Array.from({ length: 8 }, (_, i) => <PhoneCardSkeleton key={i} />)
-              : phones.length > 0
-                ? phones.map(phone => (
+              : filtered.length > 0
+                ? filtered.slice(0, 12).map(p => (
                     <PhoneCard
-                      key={phone.id || phone.slug}
-                      phone={phone}
+                      key={p.id || p.slug}
+                      phone={p}
                       onAddCompare={onAddCompare}
-                      inCompare={compareList.some(p => p.slug === phone.slug)}
+                      inCompare={compareList.some(c => c.slug === p.slug)}
                     />
                   ))
                 : (
-                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: 'var(--ink-light)' }}>
-                    No phones found in this category yet.
+                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2.5rem', color: 'var(--ink3)' }}>
+                    No phones match this filter combination yet.
                   </div>
                 )
             }
           </div>
         </div>
-      </section>
 
-      {/* ── Budget quick filter ───────────────────────────────────────────────── */}
-      <section style={{ padding: '2rem 0 3.5rem', background: 'var(--white)' }}>
-        <div className="container">
-          <div className="section-eyebrow">Find by budget</div>
-          <h2 className="section-title">What's your budget?</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.75rem' }}>
-            {BUDGET_RANGES.map(r => (
-              <button
-                key={r.label}
-                className="btn btn-secondary"
-                onClick={() => navigate('/budget?' + new URLSearchParams({
-                  ...(r.min ? { min: r.min } : {}),
-                  ...(r.max ? { max: r.max } : {}),
-                }).toString())}
-              >
-                {r.label}
-              </button>
+        {/* Top searched */}
+        {searched.length > 0 && (
+          <div className="section">
+            <div className="section-header">
+              <h2 className="section-title">
+                <span className="section-title-icon">📈</span>
+                Most searched this week
+              </h2>
+              <Link to="/phones" className="section-link">See all →</Link>
+            </div>
+            <div className="searched-list">
+              {searched.map((p, i) => (
+                <div
+                  key={p.id || p.slug}
+                  className="searched-item"
+                  onClick={() => navigate('/phones/' + p.slug)}
+                >
+                  <span className={`searched-rank ${i < 3 ? 'top' : ''}`}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div className="searched-info">
+                    <div className="searched-name">{p.name}</div>
+                    <div className="searched-brand">{p.brand}</div>
+                  </div>
+                  <ScoreRing score={parseFloat(p.overall_score) || 0} size="md" animated={false} />
+                  <span className="searched-price">
+                    {p.launch_price_inr ? '₹' + parseInt(p.launch_price_inr).toLocaleString('en-IN') : '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Top comparisons */}
+        <div className="section">
+          <div className="section-header">
+            <h2 className="section-title">
+              <span className="section-title-icon">📺</span>
+              Top comparisons this week
+            </h2>
+            <Link to="/compare" className="section-link">All comparisons →</Link>
+          </div>
+          <div className="h-scroll">
+            {comparisons.map((c, i) => (
+              <div key={i} className="cmp-card" onClick={() => navigate('/compare')}>
+                <div className="cmp-phones">
+                  <span className="cmp-phone-name">{c.a}</span>
+                  <span className="cmp-vs">VS</span>
+                  <span className="cmp-phone-name">{c.b}</span>
+                </div>
+                <div className="cmp-count">
+                  <strong>{c.count || c.comparison_count || '—'}</strong> comparisons this week
+                </div>
+                <button className="cmp-yt-btn">
+                  ▶ Watch comparison video
+                </button>
+              </div>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* ── In-content ad ────────────────────────────────────────────────────── */}
-      <div className="container">
-        <AdSlot type="in-content" />
-      </div>
+        {/* Ad slot */}
+        <AdSlot type="leaderboard" />
 
-      {/* ── Compare CTA ──────────────────────────────────────────────────────── */}
-      <section style={{
-        padding: '3.5rem 0',
-        background: 'linear-gradient(135deg, var(--purple) 0%, #4c1d95 100%)',
-        color: '#fff',
-        textAlign: 'center',
-      }}>
-        <div className="container">
-          <div style={{ fontSize: '2rem', marginBottom: '.75rem' }}>⚡</div>
-          <h2 style={{
-            fontFamily: 'var(--font-display)', fontSize: '1.75rem',
-            fontWeight: 800, marginBottom: '.75rem'
-          }}>
-            Can't decide between two phones?
-          </h2>
-          <p style={{ color: 'rgba(255,255,255,.75)', marginBottom: '1.5rem', maxWidth: 440, margin: '0 auto 1.5rem' }}>
-            Compare up to 3 phones side-by-side — specs, quality scores, and prices.
-          </p>
-          <Link to="/compare" className="btn btn-coral btn-lg">
-            Start Comparing →
-          </Link>
+        {/* Upcoming launches */}
+        <div className="section">
+          <div className="section-header">
+            <h2 className="section-title">
+              <span className="section-title-icon">📅</span>
+              Upcoming launches
+            </h2>
+            <button className="section-link">All upcoming →</button>
+          </div>
+          <div className="h-scroll">
+            {upcoming.map((u, i) => (
+              <div key={i} className="upcoming-card">
+                <div className="upcoming-badge">{u.expected_date || u.badge}</div>
+                <div className="upcoming-img">📱</div>
+                <div className="upcoming-brand">{u.brand}</div>
+                <div className="upcoming-name">{u.name}</div>
+                <div className="upcoming-detail">{u.detail || u.category}</div>
+              </div>
+            ))}
+          </div>
         </div>
-      </section>
+
+        {/* How we score */}
+        <div className="section">
+          <div className="section-header">
+            <h2 className="section-title">
+              <span className="section-title-icon">⭐</span>
+              How we score phones
+            </h2>
+          </div>
+          <div className="dims-grid">
+            {DIMS.map(d => (
+              <div key={d.name} className="dim-card">
+                <span className="dim-card-icon">{d.icon}</span>
+                <div className="dim-card-name">{d.name}</div>
+                <div className="dim-card-desc">{d.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Latest news */}
+        {articles.length > 0 && (
+          <div className="section">
+            <div className="section-header">
+              <h2 className="section-title">
+                <span className="section-title-icon">📰</span>
+                Latest news
+              </h2>
+              <Link to="/news" className="section-link">All news →</Link>
+            </div>
+            <div className="h-scroll">
+              {articles.map(a => (
+                <div key={a.id} className="news-card" onClick={() => navigate('/news/' + a.slug)}>
+                  <div className={`news-type news-type-${a.type || 'guide'}`}>
+                    {a.type || 'Article'}
+                  </div>
+                  <div className="news-title">{a.title}</div>
+                  <div className="news-ago">
+                    {a.published_at ? new Date(a.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CTA banner */}
+        <div className="cta-banner">
+          <div>
+            <h3>Can't decide between two phones?</h3>
+            <p>Compare specs, scores, and prices side by side. Takes 10 seconds.</p>
+          </div>
+          <Link to="/compare" className="btn btn-hot btn-lg">Compare now →</Link>
+        </div>
+
+      </div>
     </>
   );
 }
